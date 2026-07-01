@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from schemas import FeatureVectorChurn, DatasetRowChurn
 from dataset import dataset_service
 from preprocessing import preprocessing_service
+from model import model_service
 
 
 app = FastAPI()
@@ -24,5 +25,14 @@ def info():
     return dataset_service.info()
 
 @app.get("/dataset/split-info")
-def info():
+def split_info():
     return preprocessing_service.split_info()
+
+@app.get("/model/train")
+def train():
+    try:
+        return model_service.train()
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обучения: {e}")
