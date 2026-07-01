@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.python-version 
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# ML artifacts
+*.pkl
+*.joblib
+models/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / editor
+.qodo/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# data
+data/
