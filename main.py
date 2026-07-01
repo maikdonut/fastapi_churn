@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from schemas import FeatureVectorChurn, DatasetRowChurn
 from dataset import dataset_service
+from preprocessing import preprocessing_service
 
 
 app = FastAPI()
@@ -21,3 +22,7 @@ def preview(n: int = 5):
 @app.get("/dataset/info")
 def info():
     return dataset_service.info()
+
+@app.get("/dataset/split-info")
+def info():
+    return preprocessing_service.split_info()
