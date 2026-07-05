@@ -70,7 +70,7 @@ class ChurnModelService:
         self.save()
         return self._metrics 
 
-    def predict(self, X: pd.DataFrame) -> dict:
+    def predict(self, X: pd.DataFrame) -> list[dict]:
         """
         Принимает DataFrame с признаками одного или нескольких объектов,
         возвращает предсказание класса и вероятность churn.
@@ -78,10 +78,14 @@ class ChurnModelService:
         y_pred = self.pipeline.predict(X)
         y_proba = self.pipeline.predict_proba(X)[:, 1]
 
-        return {
-            "churn": int(y_pred[0]),
-            "churn_probability": round(float(y_proba[0]), 4),
-        }
+        return [
+            {
+                "churn": int(pred),
+                "churn_probability": round(float(proba), 4),
+                "churn_label": "churn" if int(pred) == 1 else "stay",
+            }
+            for pred, proba in zip(y_pred, y_proba)
+        ]
 
     def save(self) -> None:
         """Сохраняет весь model_service на диск через joblib."""
