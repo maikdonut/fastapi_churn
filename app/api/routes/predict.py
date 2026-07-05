@@ -1,12 +1,22 @@
 import pandas as pd
-from fastapi import APIRouter, HTTPException
-from app.schemas.churn import FeatureVectorChurn, PredictionResponseChurn
+from fastapi import APIRouter
+from app.schemas.churn import FeatureVectorChurn, PredictionResponseChurn, ErrorResponse
 from app.services.model import model_service
 from app.services.preprocessing import CATEGORICAL_FEATURES, NUMERICAL_FEATURES
+from app.core.exceptions import ModelNotTrainedException, PredictionFailedException
 
 
 router = APIRouter(prefix="/predict", tags=["predict"])
 
+@router.post(
+    "/",
+    response_model=list[PredictionResponseChurn],
+    responses={
+        503: {"model": ErrorResponse, "description": "Модель не обучена"},
+        500: {"model": ErrorResponse, "description": "Ошибка предсказания"},
+        422: {"model": ErrorResponse, "description": "Ошибка валидации входных данных"},
+    }
+)
 
 @router.post("/", response_model=list[PredictionResponseChurn])
 def predict(features: list[FeatureVectorChurn]):
@@ -14,14 +24,11 @@ def predict(features: list[FeatureVectorChurn]):
         return []
 
     if not model_service.is_trained():
-        raise HTTPException(
-            status_code=503,
-            detail="Модель не обучена. Вызовите сначала POST /model/train.",
-        )
+        raise ModelNotTrainedException()
 
     try:
         df = pd.DataFrame([obj.model_dump() for obj in features])
         df = df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES]
         return model_service.predict(df)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка предсказания: {e}")
+        raise PredictionFailedException(details=str(e))

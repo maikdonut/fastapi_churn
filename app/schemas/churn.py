@@ -60,3 +60,8 @@ class FeatureInfo(BaseModel):
 
 class FeatureSchemaResponse(BaseModel):
     features: list[FeatureInfo]
+
+class ErrorResponse(BaseModel):
+    code: str
+    message: str
+    details: str | None = None
