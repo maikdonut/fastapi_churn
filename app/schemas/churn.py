@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Literal
 
 
 class FeatureVectorChurn(BaseModel):
@@ -43,7 +44,11 @@ class PredictionResponseChurn(BaseModel):
             }
         }
     )
-    
+
     churn: int = Field(..., ge=0, le=1, description="Предсказанный класс: 0 — остался, 1 — ушёл")
     churn_probability: float = Field(..., ge=0.0, le=1.0, description="Вероятность оттока")
     churn_label: str = Field(..., description="Читаемый результат: 'churn' или 'stay'")
+
+class TrainingConfigChurn(BaseModel):
+    model_type: Literal["logreg", "random_forest"] = "logreg"
+    hyperparameters: dict[str, Any] = {}

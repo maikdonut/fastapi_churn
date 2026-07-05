@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -27,18 +28,27 @@ class ChurnModelService:
         self._pipeline: Pipeline | None = None
         self._trained_at: datetime | None = None
         self._metrics: dict | None = None
+        self._model_type: str | None = None
+        self._hyperparameters: dict | None = None
 
-    def _build_pipeline(self) -> Pipeline:
-        """Собирает sklearn Pipeline: ColumnTransformer + LogisticRegression."""
+    def _build_pipeline(self, model) -> Pipeline:
+        """Собирает sklearn Pipeline: ColumnTransformer + LogisticRegression/RandomForest."""
         return Pipeline([
             ("preprocessor", ColumnTransformer([
                 ("num_preprocess", StandardScaler(), NUMERICAL_FEATURES),
                 ("cat_preprocess", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
             ])),
-            ("model", LogisticRegression(random_state=self.random_state)),
+            ("model", model),
         ])
 
-    def train(self) -> dict:
+    def _build_sklearn_model(self):
+        if self._model_type == 'logreg':
+            return LogisticRegression(**self._hyperparameters)
+        elif self._model_type == 'random_forest':
+            return RandomForestClassifier(**self._hyperparameters)
+        raise ValueError("Выбранная модель не доступна.")
+
+    def train(self, parameters) -> dict:
         """
         Берёт данные из preprocessing_service, обучает pipeline,
         вычисляет метрики на тестовой выборке, возвращает их.
@@ -51,13 +61,20 @@ class ChurnModelService:
         if df.empty:
             raise ValueError("Датасет пустой.")
 
+        self._model_type = parameters.model_type
+        self._hyperparameters = parameters.hyperparameters
+        self._hyperparameters.setdefault("random_state", self.random_state)
+
+        model = self._build_sklearn_model()
+
         X_train = preprocessing_service.X_train
         y_train = preprocessing_service.y_train
         X_test = preprocessing_service.X_test
         y_test = preprocessing_service.y_test
 
-        self._pipeline = train_churn_model(X_train, y_train)
-
+        self._pipeline = self._build_pipeline(model)
+        self._pipeline.fit(X_train, y_train)
+        self._trained_at = datetime.now()
         y_pred = self._pipeline.predict(X_test)
 
         self._metrics = {
@@ -102,8 +119,10 @@ class ChurnModelService:
 
         loaded: ChurnModelService = joblib.load(MODEL_PATH)
         self._pipeline = loaded._pipeline
-        self._trained_at = loaded._trained_at
-        self._metrics = loaded._metrics
+        self._model_type = getattr(loaded, '_model_type', None)
+        self._hyperparameters = getattr(loaded, '_hyperparameters', None)
+        self._trained_at = getattr(loaded, '_trained_at', None)
+        self._metrics = getattr(loaded, '_metrics', None)
         return True
 
     def status(self) -> dict:
@@ -112,7 +131,9 @@ class ChurnModelService:
             "is_trained": self.is_trained(),
             "trained_at": self._trained_at.isoformat() if self._trained_at else None,
             "metrics": self._metrics,
-        }
+            "model_type": self._model_type,
+            "hyperparameters": self._hyperparameters,
+    }
 
     @property
     def pipeline(self) -> Pipeline:
@@ -124,21 +145,6 @@ class ChurnModelService:
     def is_trained(self) -> bool:
         """Возвращает True если модель уже обучена."""
         return self._pipeline is not None
-
-
-def train_churn_model(
-    X_train: pd.DataFrame,
-    y_train: pd.Series,
-) -> Pipeline:
-    """
-    Строит и обучает Pipeline на переданных данных.
-    Возвращает fitted pipeline.
-    Используется внутри ChurnModelService.train().
-    """
-    service = ChurnModelService()
-    pipeline = service._build_pipeline()
-    pipeline.fit(X_train, y_train)
-    return pipeline
 
 
 model_service = ChurnModelService()
