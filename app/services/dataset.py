@@ -1,13 +1,13 @@
-from pathlib import Path
 import pandas as pd
-from schemas import DatasetRowChurn
 
-DATASET_PATH = Path(__file__).parent / "data" / "churn_dataset.csv"
+from app.core.paths import DATASET_PATH
+from app.schemas.churn import DatasetRowChurn
+
 
 class ChurnDatasetService:
     """Загружает и хранит churn-датасет, отдаёт превью и статистику."""
 
-    def __init__(self, csv_path: Path = DATASET_PATH):
+    def __init__(self, csv_path=DATASET_PATH):
         self.csv_path = csv_path
         self._df: pd.DataFrame | None = None
 

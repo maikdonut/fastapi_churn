@@ -61,7 +61,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi", specifier = ">=0.138.2" },
+    { name = "fastapi", specifier = ">=0.110.0" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "scikit-learn", specifier = ">=1.7.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.49.0" },

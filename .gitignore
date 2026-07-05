@@ -9,7 +9,6 @@ build/
 dist/
 *.egg-info/
 .eggs/
-.python-version 
 
 # Virtual environments
 .venv/
@@ -23,7 +22,8 @@ env/
 # ML artifacts
 *.pkl
 *.joblib
-models/
+models/*
+!models/.gitkeep
 
 # Testing
 .pytest_cache/
@@ -38,6 +38,3 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
-
-# data
-data/

@@ -1,13 +1,22 @@
 import pandas as pd
-from sklearn.pipeline import Pipeline
+import joblib
+from datetime import datetime
+from pathlib import Path
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from preprocessing import NUMERICAL_FEATURES, CATEGORICAL_FEATURES
-from preprocessing import preprocessing_service
-from dataset import dataset_service
+from app.core.paths import MODEL_PATH
+from app.services.dataset import dataset_service
+from app.services.preprocessing import (
+    CATEGORICAL_FEATURES,
+    NUMERICAL_FEATURES,
+    preprocessing_service,
+)
+
+
 
 
 class ChurnModelService:
@@ -16,6 +25,8 @@ class ChurnModelService:
     def __init__(self, random_state: int = 42):
         self.random_state = random_state
         self._pipeline: Pipeline | None = None
+        self._trained_at: datetime | None = None
+        self._metrics: dict | None = None
 
     def _build_pipeline(self) -> Pipeline:
         """Собирает sklearn Pipeline: ColumnTransformer + LogisticRegression."""
@@ -49,12 +60,15 @@ class ChurnModelService:
 
         y_pred = self._pipeline.predict(X_test)
 
-        return {
+        self._metrics = {
             "accuracy": round(float(accuracy_score(y_test, y_pred)), 4),
             "f1": round(float(f1_score(y_test, y_pred)), 4),
             "train_size": len(X_train),
             "test_size": len(X_test),
         }
+
+        self.save()
+        return self._metrics 
 
     def predict(self, X: pd.DataFrame) -> dict:
         """
@@ -67,6 +81,33 @@ class ChurnModelService:
         return {
             "churn": int(y_pred[0]),
             "churn_probability": round(float(y_proba[0]), 4),
+        }
+
+    def save(self) -> None:
+        """Сохраняет весь model_service на диск через joblib."""
+        MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(self, MODEL_PATH)
+
+    def load(self) -> bool:
+        """
+        Загружает сохранённый model_service из файла.
+        Возвращает True если загрузка успешна, False если файл не найден.
+        """
+        if not MODEL_PATH.exists():
+            return False
+
+        loaded: ChurnModelService = joblib.load(MODEL_PATH)
+        self._pipeline = loaded._pipeline
+        self._trained_at = loaded._trained_at
+        self._metrics = loaded._metrics
+        return True
+
+    def status(self) -> dict:
+        """Возвращает статус модели: обучена ли, когда, с какими метриками."""
+        return {
+            "is_trained": self.is_trained(),
+            "trained_at": self._trained_at.isoformat() if self._trained_at else None,
+            "metrics": self._metrics,
         }
 
     @property

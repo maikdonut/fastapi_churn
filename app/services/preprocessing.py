@@ -1,9 +1,10 @@
+from typing import Literal
+
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-from typing import Literal
-from dataset import dataset_service
 
+from app.services.dataset import dataset_service
 
 NUMERICAL_FEATURES = [
     "monthly_fee",
