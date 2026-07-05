@@ -52,3 +52,11 @@ class PredictionResponseChurn(BaseModel):
 class TrainingConfigChurn(BaseModel):
     model_type: Literal["logreg", "random_forest"] = "logreg"
     hyperparameters: dict[str, Any] = {}
+
+class FeatureInfo(BaseModel):
+    name: str
+    type: str
+    kind: Literal["numerical", "categorical"]
+
+class FeatureSchemaResponse(BaseModel):
+    features: list[FeatureInfo]
