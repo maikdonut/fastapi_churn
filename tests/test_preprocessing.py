@@ -1,11 +1,76 @@
-from app.services.preprocessing import ChurnPreprocessingService
+import pytest
+import pandas as pd
+import numpy as np
+from app.services.preprocessing import ChurnPreprocessingService, NUMERICAL_FEATURES, CATEGORICAL_FEATURES, TARGET
 
 
-def test_split_info_returns_train_and_test_sizes():
-    service = ChurnPreprocessingService(test_size=0.2, random_state=42)
+def test_separate_features_and_target(sample_df):
+    service = ChurnPreprocessingService()
+    X, y = service._separate_features_and_target(sample_df)
+
+    # X не содержит churn
+    assert TARGET not in X.columns
+
+    # X содержит все нужные колонки
+    assert list(X.columns) == NUMERICAL_FEATURES + CATEGORICAL_FEATURES
+
+    # y содержит только churn
+    assert y.name == TARGET
+
+    # размеры совпадают
+    assert len(X) == len(sample_df)
+    assert len(y) == len(sample_df)
+
+
+def test_impute_missing_values(sample_df):
+    service = ChurnPreprocessingService()
+    X, _ = service._separate_features_and_target(sample_df)
+
+    # добавляем пропуски вручную
+    X_train = X.iloc[:80].copy()
+    X_test = X.iloc[80:].copy()
+    X_train.loc[X_train.index[0], "monthly_fee"] = np.nan
+    X_test.loc[X_test.index[0], "usage_hours"] = np.nan
+
+    X_train_imputed, X_test_imputed = service._impute_missing_values(X_train, X_test)
+
+    # после impute нет NaN
+    assert not X_train_imputed.isnull().any().any()
+    assert not X_test_imputed.isnull().any().any()
+
+    # imputer'ы сохранены в сервисе
+    assert service.num_imputer is not None
+    assert service.cat_imputer is not None
+
+
+def test_split_sizes(sample_df):
+    service = ChurnPreprocessingService()
+
+    # подменяем df в dataset_service
+    from app.services.dataset import dataset_service
+    dataset_service._df = sample_df
+
     info = service.split_info()
 
-    assert info["train_size"] == 1600
-    assert info["test_size"] == 400
-    assert info["train_churn_distribution"]["churn_0"] + info["train_churn_distribution"]["churn_1"] == 1600
-    assert info["test_churn_distribution"]["churn_0"] + info["test_churn_distribution"]["churn_1"] == 400
+    assert info["train_size"] + info["test_size"] == len(sample_df)
+    assert info["train_size"] == 80  # 80% от 100
+    assert info["test_size"] == 20   # 20% от 100
+
+
+def test_split_stratification(sample_df):
+    service = ChurnPreprocessingService()
+
+    from app.services.dataset import dataset_service
+    dataset_service._df = sample_df
+
+    # принудительно сбрасываем кеш
+    service._X_train = None
+    service._X_test = None
+    service._y_train = None
+    service._y_test = None
+
+    train_dist = service.y_train.value_counts(normalize=True)
+    test_dist = service.y_test.value_counts(normalize=True)
+
+    # доля churn=1 в train и test отличается не более чем на 5%
+    assert abs(train_dist.get(1, 0) - test_dist.get(1, 0)) < 0.05
