@@ -1,7 +1,10 @@
+import logging
 import pandas as pd
 
 from app.core.paths import DATASET_PATH
 from app.schemas.churn import DatasetRowChurn
+
+logger = logging.getLogger(__name__)
 
 
 class ChurnDatasetService:
@@ -14,26 +17,25 @@ class ChurnDatasetService:
     def load(self) -> pd.DataFrame:
         """Читает CSV в DataFrame и кеширует его в памяти."""
         if not self.csv_path.exists():
+            logger.error(f"Dataset file not found: {self.csv_path}")
             raise FileNotFoundError(f"Dataset not found at {self.csv_path}")
 
         df = pd.read_csv(self.csv_path)
         self._df = df
+        logger.info(f"Датасет загружен: {len(df)} строк, {len(df.columns)} столбцов из {self.csv_path}")
         return df
 
     @property
     def df(self) -> pd.DataFrame:
-        """Возвращает закешированный DataFrame, загружая его при первом обращении."""
         if self._df is None:
             self.load()
         return self._df
 
     def preview(self, n: int = 5) -> list[DatasetRowChurn]:
-        """Возвращает первые n строк, провалидированных через DatasetRowChurn."""
         rows = self.df.head(n).to_dict(orient="records")
         return [DatasetRowChurn(**row) for row in rows]
 
     def validate_all(self) -> None:
-        """Прогоняет весь датасет через DatasetRowChurn, чтобы проверить целостность данных."""
         records = self.df.to_dict(orient="records")
         for i, row in enumerate(records):
             try:
@@ -42,10 +44,8 @@ class ChurnDatasetService:
                 raise ValueError(f"Row {i} failed validation: {e}") from e
 
     def info(self) -> dict:
-        """Собирает базовую статистику по датасету: размеры, признаки, распределение churn."""
         df = self.df
         feature_columns = [col for col in df.columns if col != "churn"]
-
         return {
             "n_rows": int(df.shape[0]),
             "n_columns": int(df.shape[1]),

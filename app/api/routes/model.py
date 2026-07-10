@@ -19,7 +19,7 @@ router = APIRouter(prefix="/model", tags=["model"])
 )
 
 
-@router.post("/train")
+@router.post("/train", operation_id="train_model")
 def train(parameters: TrainingConfigChurn = TrainingConfigChurn()):
     try:
         return model_service.train(parameters)

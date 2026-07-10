@@ -18,7 +18,7 @@ router = APIRouter(prefix="/predict", tags=["predict"])
     }
 )
 
-@router.post("/", response_model=list[PredictionResponseChurn])
+@router.post("/", response_model=list[PredictionResponseChurn], operation_id="predict_churn")
 def predict(features: list[FeatureVectorChurn]):
     if not features:
         return []
