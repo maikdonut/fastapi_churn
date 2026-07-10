@@ -4,6 +4,9 @@ from app.services.model import model_service
 from app.services.preprocessing import CATEGORICAL_FEATURES, NUMERICAL_FEATURES
 from app.schemas.churn import FeatureVectorChurn, FeatureSchemaResponse, FeatureInfo, ErrorResponse
 from app.core.exceptions import DatasetNotFoundException, TrainingFailedException
+from app.services.history import history_service
+from app.schemas.churn import MetricsResponse, TrainingRecord
+from typing import Literal
 
 router = APIRouter(prefix="/model", tags=["model"])
 
@@ -46,3 +49,20 @@ def schema():
             kind="categorical"
         ))
     return FeatureSchemaResponse(features=features)
+
+
+@router.get(
+    "/metrics",
+    response_model=MetricsResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "История обучений пуста"},
+    }
+)
+def metrics(model_type: Literal["logreg", "random_forest"] | None = None):
+    records = history_service.get_all(model_type=model_type)
+    
+    return MetricsResponse(
+        latest=TrainingRecord(**records[-1]) if records else None,
+        history=[TrainingRecord(**r) for r in records],
+        total_runs=len(records),
+    )

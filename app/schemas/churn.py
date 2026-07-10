@@ -65,3 +65,14 @@ class ErrorResponse(BaseModel):
     code: str
     message: str
     details: str | None = None
+
+class TrainingRecord(BaseModel):
+    timestamp: str
+    model_type: str
+    hyperparameters: dict[str, Any]
+    metrics: dict[str, Any]
+
+class MetricsResponse(BaseModel):
+    latest: TrainingRecord | None
+    history: list[TrainingRecord]
+    total_runs: int

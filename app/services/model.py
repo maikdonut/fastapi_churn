@@ -5,11 +5,12 @@ from pathlib import Path
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from app.core.paths import MODEL_PATH
+from app.services.history import history_service
+from app.core.paths import MODEL_PATH 
 from app.services.dataset import dataset_service
 from app.services.preprocessing import (
     CATEGORICAL_FEATURES,
@@ -80,9 +81,17 @@ class ChurnModelService:
         self._metrics = {
             "accuracy": round(float(accuracy_score(y_test, y_pred)), 4),
             "f1": round(float(f1_score(y_test, y_pred)), 4),
+            "roc_auc": round(float(roc_auc_score(y_test, y_pred)), 4),
             "train_size": len(X_train),
             "test_size": len(X_test),
         }
+
+        history_service.add({
+            "timestamp": self._trained_at.isoformat(),
+            "model_type": self._model_type,
+            "hyperparameters": self._hyperparameters,
+            "metrics": self._metrics,
+        })
 
         self.save()
         return self._metrics 
