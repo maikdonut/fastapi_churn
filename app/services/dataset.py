@@ -26,6 +26,10 @@ class ChurnDatasetService:
         return df
 
     @property
+    def is_loaded(self) -> bool:
+        return self._df is not None
+
+    @property
     def df(self) -> pd.DataFrame:
         if self._df is None:
             self.load()
@@ -34,14 +38,6 @@ class ChurnDatasetService:
     def preview(self, n: int = 5) -> list[DatasetRowChurn]:
         rows = self.df.head(n).to_dict(orient="records")
         return [DatasetRowChurn(**row) for row in rows]
-
-    def validate_all(self) -> None:
-        records = self.df.to_dict(orient="records")
-        for i, row in enumerate(records):
-            try:
-                DatasetRowChurn(**row)
-            except Exception as e:
-                raise ValueError(f"Row {i} failed validation: {e}") from e
 
     def info(self) -> dict:
         df = self.df

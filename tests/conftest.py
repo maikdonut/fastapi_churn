@@ -5,6 +5,7 @@ import numpy as np
 
 @pytest.fixture
 def sample_df():
+    np.random.seed(42)
     n = 100
     return pd.DataFrame({
         "monthly_fee": np.random.uniform(10, 100, n),

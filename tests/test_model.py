@@ -93,11 +93,6 @@ def test_pipeline_raises_if_not_trained(model_service):
 
 def test_train_returns_metrics(trained_model_service):
     """train() возвращает словарь с нужными метриками."""
-    from app.services.dataset import dataset_service
-    from app.services.preprocessing import ChurnPreprocessingService
-    import app.services.model as model_module
-
-    dataset_service._df = trained_model_service._metrics  # уже обучена
     metrics = trained_model_service._metrics
 
     assert "accuracy" in metrics

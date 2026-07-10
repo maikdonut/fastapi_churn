@@ -15,7 +15,7 @@ def root():
 
 @router.get("/health")
 def health():
-    dataset_loaded = dataset_service._df is not None
+    dataset_loaded = dataset_service.is_loaded
     model_available = model_service.is_trained()
 
     status = "ok" if model_available and dataset_loaded else "degraded"

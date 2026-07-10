@@ -1,24 +1,24 @@
 import pandas as pd
 from fastapi import APIRouter
-from app.schemas.churn import FeatureVectorChurn, PredictionResponseChurn, ErrorResponse
+
+from app.core.exceptions import ModelNotTrainedException, PredictionFailedException
+from app.schemas.churn import ErrorResponse, FeatureVectorChurn, PredictionResponseChurn
 from app.services.model import model_service
 from app.services.preprocessing import CATEGORICAL_FEATURES, NUMERICAL_FEATURES
-from app.core.exceptions import ModelNotTrainedException, PredictionFailedException
-
 
 router = APIRouter(prefix="/predict", tags=["predict"])
+
 
 @router.post(
     "/",
     response_model=list[PredictionResponseChurn],
+    operation_id="predict_churn",
     responses={
         503: {"model": ErrorResponse, "description": "Модель не обучена"},
         500: {"model": ErrorResponse, "description": "Ошибка предсказания"},
         422: {"model": ErrorResponse, "description": "Ошибка валидации входных данных"},
-    }
+    },
 )
-
-@router.post("/", response_model=list[PredictionResponseChurn], operation_id="predict_churn")
 def predict(features: list[FeatureVectorChurn]):
     if not features:
         return []

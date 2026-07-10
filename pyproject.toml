@@ -1,7 +1,7 @@
 [project]
 name = "assignment-fastapi"
 version = "0.1.0"
-description = "Add your description here"
+description = "REST API для обучения модели оттока клиентов (churn) и batch-предсказаний"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

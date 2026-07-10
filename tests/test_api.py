@@ -1,13 +1,9 @@
 import pytest
-import numpy as np
-import pandas as pd
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.dataset import dataset_service
 from app.services.model import model_service
-from app.services.preprocessing import ChurnPreprocessingService
-import app.services.model as model_module
 
 
 @pytest.fixture

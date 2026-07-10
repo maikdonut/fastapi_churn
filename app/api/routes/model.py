@@ -1,36 +1,51 @@
+from typing import Literal
+
 from fastapi import APIRouter
-from app.schemas.churn import TrainingConfigChurn
+
+from app.core.exceptions import (
+    DatasetEmptyException,
+    DatasetNotFoundException,
+    TrainingFailedException,
+)
+from app.schemas.churn import (
+    ErrorResponse,
+    FeatureInfo,
+    FeatureSchemaResponse,
+    FeatureVectorChurn,
+    MetricsResponse,
+    TrainingConfigChurn,
+    TrainingRecord,
+)
+from app.services.history import history_service
 from app.services.model import model_service
 from app.services.preprocessing import CATEGORICAL_FEATURES, NUMERICAL_FEATURES
-from app.schemas.churn import FeatureVectorChurn, FeatureSchemaResponse, FeatureInfo, ErrorResponse
-from app.core.exceptions import DatasetNotFoundException, TrainingFailedException
-from app.services.history import history_service
-from app.schemas.churn import MetricsResponse, TrainingRecord
-from typing import Literal
 
 router = APIRouter(prefix="/model", tags=["model"])
 
+
 @router.post(
     "/train",
+    operation_id="train_model",
     responses={
         503: {"model": ErrorResponse, "description": "Датасет не найден или пуст"},
         500: {"model": ErrorResponse, "description": "Ошибка обучения модели"},
-    }
+    },
 )
-
-
-@router.post("/train", operation_id="train_model")
 def train(parameters: TrainingConfigChurn = TrainingConfigChurn()):
     try:
         return model_service.train(parameters)
     except ValueError as e:
+        if str(e).startswith("Датасет пустой"):
+            raise DatasetEmptyException()
         raise DatasetNotFoundException(details=str(e))
     except Exception as e:
         raise TrainingFailedException(details=str(e))
 
+
 @router.get("/status")
 def status():
     return model_service.status()
+
 
 @router.get("/schema", response_model=FeatureSchemaResponse)
 def schema():
@@ -56,11 +71,11 @@ def schema():
     response_model=MetricsResponse,
     responses={
         404: {"model": ErrorResponse, "description": "История обучений пуста"},
-    }
+    },
 )
 def metrics(model_type: Literal["logreg", "random_forest"] | None = None):
     records = history_service.get_all(model_type=model_type)
-    
+
     return MetricsResponse(
         latest=TrainingRecord(**records[-1]) if records else None,
         history=[TrainingRecord(**r) for r in records],

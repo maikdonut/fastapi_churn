@@ -80,11 +80,12 @@ class ChurnModelService:
 
         self._trained_at = datetime.now()
         y_pred = self._pipeline.predict(X_test)
+        y_proba = self._pipeline.predict_proba(X_test)[:, 1]
 
         self._metrics = {
             "accuracy": round(float(accuracy_score(y_test, y_pred)), 4),
             "f1": round(float(f1_score(y_test, y_pred)), 4),
-            "roc_auc": round(float(roc_auc_score(y_test, y_pred)), 4),
+            "roc_auc": round(float(roc_auc_score(y_test, y_proba)), 4),
             "train_size": len(X_train),
             "test_size": len(X_test),
         }
@@ -112,7 +113,7 @@ class ChurnModelService:
         y_proba = self.pipeline.predict_proba(X)[:, 1]
         elapsed = round(time.time() - start_time, 4)
 
-        logger.info(f"Предскзание завершено: n_objects={len(X)}, время={elapsed}с")
+        logger.info(f"Предсказание завершено: n_objects={len(X)}, время={elapsed}с")
 
         return [
             {
