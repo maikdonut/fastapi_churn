@@ -1,6 +1,5 @@
 import pytest
 import pandas as pd
-import numpy as np
 from app.services.preprocessing import ChurnPreprocessingService, NUMERICAL_FEATURES, CATEGORICAL_FEATURES, TARGET
 
 
@@ -20,27 +19,6 @@ def test_separate_features_and_target(sample_df):
     # размеры совпадают
     assert len(X) == len(sample_df)
     assert len(y) == len(sample_df)
-
-
-def test_impute_missing_values(sample_df):
-    service = ChurnPreprocessingService()
-    X, _ = service._separate_features_and_target(sample_df)
-
-    # добавляем пропуски вручную
-    X_train = X.iloc[:80].copy()
-    X_test = X.iloc[80:].copy()
-    X_train.loc[X_train.index[0], "monthly_fee"] = np.nan
-    X_test.loc[X_test.index[0], "usage_hours"] = np.nan
-
-    X_train_imputed, X_test_imputed = service._impute_missing_values(X_train, X_test)
-
-    # после impute нет NaN
-    assert not X_train_imputed.isnull().any().any()
-    assert not X_test_imputed.isnull().any().any()
-
-    # imputer'ы сохранены в сервисе
-    assert service.num_imputer is not None
-    assert service.cat_imputer is not None
 
 
 def test_split_sizes(sample_df):

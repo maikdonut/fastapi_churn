@@ -19,7 +19,10 @@ router = APIRouter(prefix="/predict", tags=["predict"])
         422: {"model": ErrorResponse, "description": "Ошибка валидации входных данных"},
     },
 )
-def predict(features: list[FeatureVectorChurn]):
+def predict(features: FeatureVectorChurn | list[FeatureVectorChurn]):
+    if isinstance(features, FeatureVectorChurn):
+        features = [features]
+
     if not features:
         return []
 

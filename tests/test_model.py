@@ -42,13 +42,22 @@ def trained_model_service(sample_df):
 
 
 def test_build_pipeline_structure(model_service):
-    """Pipeline содержит шаги preprocessor и model."""
+    """Pipeline содержит шаги preprocessor и model с imputer внутри."""
     from sklearn.linear_model import LogisticRegression
     pipeline = model_service._build_pipeline(LogisticRegression())
 
     assert isinstance(pipeline, Pipeline)
     assert "preprocessor" in pipeline.named_steps
     assert "model" in pipeline.named_steps
+
+    preprocessor = pipeline.named_steps["preprocessor"]
+    transformers = {name: transformer for name, transformer, _ in preprocessor.transformers}
+    num_pipeline = transformers["num"]
+    cat_pipeline = transformers["cat"]
+    assert "imputer" in num_pipeline.named_steps
+    assert "scaler" in num_pipeline.named_steps
+    assert "imputer" in cat_pipeline.named_steps
+    assert "encoder" in cat_pipeline.named_steps
 
 
 def test_build_sklearn_model_logreg(model_service):
@@ -119,6 +128,22 @@ def test_predict_returns_correct_structure(trained_model_service, sample_df):
         assert result["churn"] in [0, 1]
         assert 0.0 <= result["churn_probability"] <= 1.0
         assert result["churn_label"] in ["churn", "stay"]
+
+
+def test_predict_handles_missing_values(trained_model_service, sample_df):
+    """Pipeline impute'ит пропуски и не падает при predict."""
+    from app.services.preprocessing import NUMERICAL_FEATURES, CATEGORICAL_FEATURES
+
+    X = sample_df[NUMERICAL_FEATURES + CATEGORICAL_FEATURES].head(3).copy()
+    X.loc[X.index[0], "monthly_fee"] = np.nan
+    X.loc[X.index[1], "region"] = np.nan
+
+    results = trained_model_service.predict(X)
+
+    assert len(results) == 3
+    for result in results:
+        assert result["churn"] in [0, 1]
+        assert 0.0 <= result["churn_probability"] <= 1.0
 
 
 def test_status_not_trained(model_service):

@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 from datetime import datetime
 from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
@@ -34,11 +35,20 @@ class ChurnModelService:
         self._hyperparameters: dict | None = None
 
     def _build_pipeline(self, model) -> Pipeline:
+        numeric_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+        ])
+        categorical_pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("encoder", OneHotEncoder(handle_unknown="ignore")),
+        ])
+        preprocessor = ColumnTransformer([
+            ("num", numeric_pipeline, NUMERICAL_FEATURES),
+            ("cat", categorical_pipeline, CATEGORICAL_FEATURES),
+        ])
         return Pipeline([
-            ("preprocessor", ColumnTransformer([
-                ("num_preprocess", StandardScaler(), NUMERICAL_FEATURES),
-                ("cat_preprocess", OneHotEncoder(handle_unknown="ignore"), CATEGORICAL_FEATURES),
-            ])),
+            ("preprocessor", preprocessor),
             ("model", model),
         ])
 

@@ -17,8 +17,6 @@ def client(sample_df, monkeypatch):
     preprocessing_service._X_test = None
     preprocessing_service._y_train = None
     preprocessing_service._y_test = None
-    preprocessing_service.num_imputer = None
-    preprocessing_service.cat_imputer = None
 
     monkeypatch.setattr(model_service, "load", lambda: False)
     monkeypatch.setattr(model_service, "save", lambda: None)
@@ -153,6 +151,16 @@ def test_predict_without_model(client):
 
 def test_predict_with_model(trained_client):
     response = trained_client.post("/predict", json=[VALID_FEATURES])
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["churn"] in [0, 1]
+    assert 0.0 <= data[0]["churn_probability"] <= 1.0
+    assert data[0]["churn_label"] in ["churn", "stay"]
+
+
+def test_predict_single_object(trained_client):
+    response = trained_client.post("/predict", json=VALID_FEATURES)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1

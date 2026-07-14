@@ -1,7 +1,4 @@
-from typing import Literal
-
 import pandas as pd
-from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 
 from app.services.dataset import dataset_service
@@ -30,16 +27,11 @@ class ChurnPreprocessingService:
     def __init__(self, test_size: float = 0.2, random_state: int = 42):
         self.test_size = test_size
         self.random_state = random_state
-        self.numeric_strategy: Literal["mean", "median", "most_frequent", "constant"] = "median"
-        self.categorical_strategy: Literal["most_frequent", "constant"] = "most_frequent"
 
         self._X_train: pd.DataFrame | None = None
         self._X_test: pd.DataFrame | None = None
         self._y_train: pd.Series | None = None
         self._y_test: pd.Series | None = None
-
-        self.num_imputer: SimpleImputer | None = None
-        self.cat_imputer: SimpleImputer | None = None
 
     def _separate_features_and_target(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
         """Отделяет матрицу признаков X от целевой переменной y."""
@@ -47,38 +39,13 @@ class ChurnPreprocessingService:
         y = df[TARGET]
         return X, y
 
-    def _impute_missing_values(
-        self,
-        X_train: pd.DataFrame,
-        X_test: pd.DataFrame,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Всегда fit'ит imputer'ы на X_train и transform'ит X_train и X_test.
-        Числовые — медиана, категориальные — мода.
-        Сохраняет fitted imputer'ы в self.num_imputer и self.cat_imputer.
-        """
-        self.num_imputer = SimpleImputer(strategy=self.numeric_strategy)
-        self.cat_imputer = SimpleImputer(strategy=self.categorical_strategy)
-
-        X_train = X_train.copy()
-        X_test = X_test.copy()
-
-        X_train[NUMERICAL_FEATURES] = self.num_imputer.fit_transform(X_train[NUMERICAL_FEATURES])
-        X_train[CATEGORICAL_FEATURES] = self.cat_imputer.fit_transform(X_train[CATEGORICAL_FEATURES])
-
-        X_test[NUMERICAL_FEATURES] = self.num_imputer.transform(X_test[NUMERICAL_FEATURES])
-        X_test[CATEGORICAL_FEATURES] = self.cat_imputer.transform(X_test[CATEGORICAL_FEATURES])
-
-        return X_train, X_test
-
     def prepare(self) -> None:
         """
         Основной метод:
         1. Берёт df из dataset_service
         2. Отделяет X от y
         3. Делает train/test split
-        4. Fit/transform imputer'ов только на train
-        5. Кеширует результат
+        4. Кеширует результат
         """
         df = dataset_service.df
         X, y = self._separate_features_and_target(df)
@@ -88,7 +55,6 @@ class ChurnPreprocessingService:
             random_state=self.random_state,
             stratify=y,
         )
-        X_train, X_test = self._impute_missing_values(X_train, X_test)
 
         self._X_train = X_train
         self._X_test = X_test
